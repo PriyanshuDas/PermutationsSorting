@@ -1,0 +1,7 @@
+Todo:
+
+-> Generate Permutations            [o]
+-> Reduce Permutations              [o]
+-> Label Permutations               [ ]
+-> Store permutation - label        [ z]
+    * Is this needed ?

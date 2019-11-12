@@ -3,7 +3,10 @@ use std::time::{Instant};
 use rayon::prelude::*;
 #[macro_use] extern crate text_io;
 
+//todo: correctly place / remove mods
+
 mod permutation_helper;
+mod permutation_label;
 
 fn main() {
     println!("Enter the size of permutations for which to generate: ");
