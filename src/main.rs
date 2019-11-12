@@ -5,8 +5,7 @@ use rayon::prelude::*;
 
 //todo: correctly place / remove mods
 
-mod permutation_helper;
-mod permutation_label;
+mod permutation;
 
 fn main() {
     println!("Enter the size of permutations for which to generate: ");
@@ -67,7 +66,7 @@ pub fn test_permutation_generation() {
 #[test]
 pub fn test_permutations_list_generation() {
     let now = Instant::now();
-    for size in 0..12 {
+    for size in 0..10 {
         let permutations_up_to_size_n = generate_permutations_up_to_size(size);
         let elapsed_duration = now.elapsed();
         println!("For size {}, time taken (ms) = {:?}, (s) = {:?}",
