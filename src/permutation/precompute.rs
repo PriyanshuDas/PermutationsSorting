@@ -1,10 +1,9 @@
-use super::permutation_helper;
+//use super::permutation_helper;
 use super::permutation_label;
 
 const DEBUG_ENABLED: bool = false;
 
 
-//todo: fix moved values errors
 pub fn pre_compute(pure_perm_labels: Vec<u32>, size: usize) -> Vec<Vec<Vec<u32>>> {
     //dimensions: [labels][size][size]
     let total_permutation_labels = permutation_label::sum_factorial(size as u32);
@@ -21,11 +20,11 @@ pub fn pre_compute(pure_perm_labels: Vec<u32>, size: usize) -> Vec<Vec<Vec<u32>>
                     permutation_move_item(&permutation, j, i);
 
                 let new_label = permutation_label::get_label_for_permutation(&new_permutation);
-                if DEBUG_ENABLED {
-                    println!("Old Permutation: {:?}\t moving ({} to before {})\n\
-                New Permutation: {:?}, New label: {}", &permutation, permutation[j], permutation[i],
-                             &new_permutation, new_label)
-                };
+//                if DEBUG_ENABLED {
+//                    println!("Old Permutation: {:?}\t moving ({} to before {})\n\
+//                New Permutation: {:?}, New label: {}", &permutation, permutation[j], permutation[i],
+//                             &new_permutation, new_label)
+//                }
             }
         }
     }

@@ -7,4 +7,34 @@ Todo:
     * Is this needed ?
     - Not really, let's proceed
 -> Do pre-computation                                   [ ]
+-> Create a pure permutation labels
+    + generator
+    + storage
+    + retrieval
 -> Store pure labels and construct struct/graphs        [ ]
+
+
+
+----------------------------
+
+Ideas:
+
+-> We don't need to generate permutations,
+    : Having Lehmer codes is good enough
+
+-> We only need to maintain pre_compute for the current level of codes
+    : Use Lehmer code, instead of permutation
+    : Store the actual code though, to be able to find the
+        : lower level adjacencies
+
+-> If we can make it so that Lehmer code delta for the move
+    : Move (p, i, j) be calculated in O(1), we get the following hypothetical complexities:
+        Memory: O(n!*8)
+        Time: O(n!*n^3)
+
+        This is significantly reduced memory:
+        > storing the final results
+        > storing the reduced (lehmer code, size) for "unpure" lehmer codes
+
+        Move (p, i, j) gives lehmer code of permutation obtained by
+            moving jth element to after i, in the permutation represented by lehmer code p

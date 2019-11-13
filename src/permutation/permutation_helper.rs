@@ -1,21 +1,21 @@
 const DEBUG_ENABLED: bool = false;
 
-pub fn reduce_permutation(permutation: Vec<i8>) -> Vec<i8> {
+pub fn reduce_permutation(permutation: &Vec<u8>) -> Vec<u8> {
     if DEBUG_ENABLED {
         println!("Reducing Permutation: {:?}", permutation);
     }
     //note: 0-indexed here, 1-indexed in paper
     let size = permutation.len();
     let n = size as u8;
-    let mut reduced_permutation: Vec<i8> = vec![];
-    let mut offset: Vec<i8> = vec![0; size];
+    let mut reduced_permutation: Vec<u8> = vec![];
+    let mut offset: Vec<u8> = vec![0; size];
 
     reduced_permutation.push(permutation[0]);
 
     let mut position: u8 = 1;
-    let mut adjacency_ct_in_block: i8 = 0; // number of adjacencies seen in current block
+    let mut adjacency_ct_in_block: u8 = 0; // number of adjacencies seen in current block
     let mut reduced_index: u8 = 1;
-    let mut adjacency_ct_in_permutation: i8 = 0;
+    let mut adjacency_ct_in_permutation: u8 = 0;
 
     /*
         Algorithm goes as follows:
@@ -62,7 +62,7 @@ pub fn reduce_permutation(permutation: Vec<i8>) -> Vec<i8> {
     return normalize(reduced_permutation);
 }
 
-fn normalize(permutation: Vec<i8>) -> Vec<i8> {
+fn normalize(permutation: Vec<u8>) -> Vec<u8> {
     if DEBUG_ENABLED {
         println!("Normalizing Permutation : {:?}", permutation);
     }
@@ -70,20 +70,20 @@ fn normalize(permutation: Vec<i8>) -> Vec<i8> {
     let remove_first_element: bool = permutation[0] == 0;
     let remove_last_element: bool =
         permutation.len() > 1
-            && permutation[permutation.len() - 1] == permutation.len() as i8 - 1;
+            && permutation[permutation.len() - 1] == permutation.len() as u8 - 1;
 
     if DEBUG_ENABLED {
         println!("remove_first_element : {:?}\nremove_last_element : {}",
                  remove_first_element, remove_last_element);
     }
 
-    let mut normalized_permutation: Vec<i8> = vec![];
+    let mut normalized_permutation: Vec<u8> = vec![];
     if remove_first_element {
         for position in 1..permutation.len() {
             normalized_permutation.push(permutation[position as usize] - 1);
         }
     } else {
-        for mut value in permutation {
+        for value in permutation {
             normalized_permutation.push(value);
         }
     }
@@ -94,7 +94,7 @@ fn normalize(permutation: Vec<i8>) -> Vec<i8> {
     return normalized_permutation;
 }
 
-fn prefix_sum(offset: &mut Vec<i8>) -> () {
+fn prefix_sum(offset: &mut Vec<u8>) -> () {
     for i in 1..offset.len() as usize {
         offset[i] = offset[i - 1] + offset[i];
     }
@@ -103,7 +103,7 @@ fn prefix_sum(offset: &mut Vec<i8>) -> () {
 
 #[test]
 pub fn test_reduce_permutation() {
-    let permutations: Vec<Vec<i8>> = vec![
+    let permutations: Vec<Vec<u8>> = vec![
         vec![0, 1, 4, 3, 2],
         vec![0, 1, 2],
         vec![0, 1, 2, 3],
@@ -111,7 +111,7 @@ pub fn test_reduce_permutation() {
         vec![3, 2, 1, 0]
     ];
 
-    let expected_reduced_form: Vec<Vec<i8>> = vec![
+    let expected_reduced_form: Vec<Vec<u8>> = vec![
         vec![2, 1, 0],
         vec![],
         vec![],
@@ -119,10 +119,10 @@ pub fn test_reduce_permutation() {
         vec![3, 2, 1, 0]
     ];
 
-    let mut actual_reduced_form: Vec<Vec<i8>> = vec![];
+    let mut actual_reduced_form: Vec<Vec<u8>> = vec![];
 
     for permutation in permutations {
-        actual_reduced_form.push(reduce_permutation(permutation));
+        actual_reduced_form.push(reduce_permutation(&permutation));
     }
 
     for test_case_number in 0..actual_reduced_form.len() {
