@@ -17,12 +17,14 @@ struct AdjacencyCalculator {
 //[start_pos][block_size][mask]
 impl AdjacencyCalculator {
     pub fn init(permutation_size: u8) -> AdjacencyCalculator {
+
+        //todo: verify lehmer_delta_min_memo calculation
         let mut lehmer_delta_min_memo: Vec<u32> = vec![0; (1 << permutation_size) as usize];
         for mask in 0..(1 << permutation_size) {
             let mut current_sum = 0;
             for bit in 0..permutation_size {
                 if 1 << bit & mask > 0 {
-                    current_sum += constants::get_factorial(bit as usize)
+                    current_sum += constants::get_factorial((permutation_size-bit) as usize)
                 }
             }
             lehmer_delta_min_memo[mask] = current_sum;
@@ -80,6 +82,8 @@ const DEBUG_ENABLED: bool = true;
 // make inversion_bitmap a struct and expose methods
 
 //todo: fix bugs
+//todo: make O(1) consistently?
+
 fn get_lehmer_code_by_moving_block_by_delta(
     adjacency_calculator: &AdjacencyCalculator,
     original_permutation: &Vec<u8>,
@@ -90,11 +94,20 @@ fn get_lehmer_code_by_moving_block_by_delta(
     permutation_precompute: &Vec<Vec<u32>>,
     inversion_bitmap: &Vec<u16>) -> u32
 {
-    let block_start_pos_original = block_start;
-    let block_end_pos_original = block_start + block_size - 1;
+    let block_start_pos_orig = block_start;
+    let block_end_pos_orig = block_start + block_size - 1;
+
+    let block_start_pos_cur = block_start_pos_orig + delta - 1;
+    let block_end_pos_cur = block_end_pos_orig + delta - 1;
+
+    let block_start_pos_new = block_end_pos_orig + delta;
+    let block_end_pos_new = block_end_pos_orig + delta;
+
     let item_moved_original_pos = block_start + block_size + delta - 1;
     let item_moved_new_pos = block_start + delta - 1;
+
     let item_to_be_moved_value = original_permutation[item_moved_original_pos];
+    let n = original_permutation.len();
 
     if DEBUG_ENABLED {
         println!("==========[get_lehmer_code_by_moving_block_by_delta called]==========");
@@ -103,68 +116,96 @@ fn get_lehmer_code_by_moving_block_by_delta(
         \t item_moved_original_pos = {}\n\
         \t item_moved_new_pos = {}\n\
         \t item_to_be_moved_value = {}\n",
-                block_start_pos_original,
-                block_end_pos_original,
-                item_moved_original_pos,
-                item_moved_new_pos,
-                item_to_be_moved_value);
+                 block_start_pos_orig,
+                 block_end_pos_orig,
+                 item_moved_original_pos,
+                 item_moved_new_pos,
+                 item_to_be_moved_value);
     }
 
     //item's current_contribution to code:
     // (item_to_be_moved - sum_bits(inversion_bitmap[item_to_be_moved]_0_item_original_pos)))
     // *item_original_pos!
-    //todo: should this be delta-1 ?
-    let lower_value_to_left_mask_for_value = inversion_bitmap[item_to_be_moved_value as usize];
-    let inv_mask_for_item_with_delta =
-        lower_value_to_left_mask_for_value << (delta - 1) as u16;
+    let inv_mask_for_items_gt_item_to_left_at_old_pos =
+        (inversion_bitmap[item_to_be_moved_value as usize]
+            & adjacency_calculator.range_bitmasks[0][item_moved_original_pos - 1]) as usize;
 
-    let range_delta_mask =
-        (inv_mask_for_item_with_delta &
-            adjacency_calculator.range_bitmasks[block_start + delta][block_size]);
-
+    let inv_mask_for_items_greater_than_item_in_block =
+        (inversion_bitmap[item_to_be_moved_value as usize]
+            & adjacency_calculator.range_bitmasks[block_start_pos_orig][block_end_pos_orig]) as usize;
 
     //todo: fix next
-    let delta_items_greater_to_left_in_block_wrt_item =
-        adjacency_calculator.lehmer_delta_min[range_delta_mask as usize] as i64;
+    let ct_items_gt_item_to_left_orig_pos =
+        inv_mask_for_items_gt_item_to_left_at_old_pos.count_ones();
+    let ct_items_gt_item_in_block =
+        block_size as u32 - inv_mask_for_items_greater_than_item_in_block.count_ones();
 
-    let delta_for_value_at_position = (item_to_be_moved_value as i64)
-        * constants::FACTORIALS[item_moved_original_pos as usize] as i64;
+    let ct_items_lt_item_to_left_original_pos: u8 =
+        (item_moved_original_pos as u32
+            - ct_items_gt_item_to_left_orig_pos) as u8;
+    let items_lesser_than_item_to_left_new_pos: u8 =
+        ct_items_lt_item_to_left_original_pos
+            - (ct_items_gt_item_in_block) as u8;
 
-    let delta_value_for_old_pos = delta_for_value_at_position as i64
-        - delta_items_greater_to_left_in_block_wrt_item as i64;
+    let value_for_item_at_old_pos = (item_to_be_moved_value -
+        ct_items_lt_item_to_left_original_pos) as i64
+        * constants::FACTORIALS[n - item_moved_original_pos - 1 as usize] as i64;
 
-    let delta_value_for_new_pos = (item_to_be_moved_value as u32)
-        * constants::FACTORIALS[item_moved_new_pos as usize];
+    let value_for_item_at_new_pos = (item_to_be_moved_value
+        - items_lesser_than_item_to_left_new_pos as u8) as i64
+        * constants::FACTORIALS[n - item_moved_new_pos - 1 as usize] as i64;
 
     let delta_value_for_item_move: i64 =
-        delta_value_for_new_pos as i64 - delta_value_for_old_pos as i64;
+        value_for_item_at_new_pos as i64 - value_for_item_at_old_pos as i64;
+
+    if DEBUG_ENABLED {
+        println!("\titems_lesser_to_item_to_left_original_pos: {}\n\
+        \titems_lesser_than_item_to_left_new_pos: {}\n\
+        \tvalue_for_item_at_new_pos: {}\n\
+        \tvalue_for_item_at_old_pos: {}",
+                 ct_items_lt_item_to_left_original_pos,
+                 items_lesser_than_item_to_left_new_pos,
+                 value_for_item_at_new_pos,
+                 value_for_item_at_old_pos);
+    }
 
     let old_block_value_for_position =
         get_block_value_for_delta(delta - 1,
                                   permutation_precompute,
-                                  block_start_pos_original,
-                                  block_end_pos_original);
+                                  block_start_pos_cur,
+                                  block_end_pos_cur);
 
     let new_block_value_for_position =
         get_block_value_for_delta(delta,
                                   permutation_precompute,
-                                  block_start_pos_original + delta,
-                                  block_end_pos_original + delta);
+                                  block_start_pos_new,
+                                  block_end_pos_new);
 
     if DEBUG_ENABLED {
         println!("Calculating Block Value: \
         \n\told_block_value_for_position: {}\
-        \n\tnew_block_value_for_position: {}",
+        \n\tnew_block_value_for_position: {}\
+        \n\tinv_mask_for_items_less_than_item_in_block: {}",
                  old_block_value_for_position,
-                 new_block_value_for_position);
+                 new_block_value_for_position,
+                 inv_mask_for_items_greater_than_item_in_block);
     }
-    let delta_value_for_block_shift: i64 =
-        new_block_value_for_position as i64 - old_block_value_for_position as i64;
+    let delta_value_for_block_shift: i64 = new_block_value_for_position as i64
+        - old_block_value_for_position as i64;
+
+    //todo: fix this!
+
+    let delta_value_on_block_due_to_item_shift =
+        adjacency_calculator
+            .lehmer_delta_min[inv_mask_for_items_greater_than_item_in_block as usize];
 
     if DEBUG_ENABLED {
-        println!("delta_value_for_item_move: {}\ndelta_value_for_block_shift: {}",
+        println!("\tdelta_value_for_item_move: {}\
+        \n\tdelta_value_for_block_shift: {}\
+        \n\tdelta_value_on_block_due_to_item_shift: {}",
                  delta_value_for_item_move,
-                 delta_value_for_block_shift);
+                 delta_value_for_block_shift,
+                 delta_value_on_block_due_to_item_shift);
     }
 
     let lehmer_delta = (delta_value_for_item_move +
@@ -178,13 +219,27 @@ fn get_block_value_for_delta(delta: usize,
                              permutation_precompute: &Vec<Vec<u32>>,
                              block_start_pos: usize,
                              block_end_pos: usize) -> u32 {
-    let block_start_value =
+    if DEBUG_ENABLED {
+        println!("\n===========[get_block_value_for_delta called]======================\
+        \n\tdelta: {},\
+        \n\tblock_start_pos: {},\
+         \n\tblock_end_pos: {})",
+                 delta, block_start_pos, block_end_pos);
+    }
+    let sum_sequence_before_block_start =
         if block_start_pos > 0 {
-            permutation_precompute[delta][block_start_pos]
+            permutation_precompute[delta][block_start_pos - 1]
         } else { 0 };
-    let block_end_value_original = permutation_precompute[delta][block_end_pos];
+    let sum_sequence_at_block_end_pos = permutation_precompute[delta][block_end_pos];
     let block_value =
-        block_end_value_original - block_start_value;
+        sum_sequence_at_block_end_pos - sum_sequence_before_block_start;
+
+    if DEBUG_ENABLED {
+        println!("\n\tsum_sequence_before_block_start: {}\
+        \n\tsum_sequence_at_block_end_pos: {}",
+                 sum_sequence_before_block_start,
+                 sum_sequence_at_block_end_pos)
+    }
     return block_value;
 }
 
@@ -393,6 +448,13 @@ mod tests {
         }
 
         let test_cases = vec![
+            TestCase {
+                permutation: vec![0, 1, 2, 3],
+                block_start: 0,
+                block_size: 3,
+                delta_shift: 1,
+                expected_output: vec![3, 0, 1, 2],
+            },
             TestCase {
                 permutation: vec![0, 1, 2, 3],
                 block_start: 0,
