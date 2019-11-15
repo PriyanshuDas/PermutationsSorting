@@ -1,11 +1,17 @@
 use permutohedron::LexicalPermutation;
 use std::time::Instant;
 
-pub fn print_permutations(permutations_lists: Vec<Vec<Vec<u8>>>) {
+//todo: extract to utilities
+pub fn print_3d_vector(permutations_lists: Vec<Vec<Vec<u32>>>) {
     for permutations_list in permutations_lists {
-        for permutation in permutations_list {
-            println!("{:?}", permutation);
-        }
+        print_2d_vector(permutations_list);
+        println!();
+    }
+}
+
+pub fn print_2d_vector(permutations_list: Vec<Vec<u32>>) {
+    for permutation in permutations_list {
+        println!("{:?} ", permutation);
     }
 }
 
@@ -53,7 +59,7 @@ pub fn test_permutation_generation() {
 #[test]
 pub fn test_permutations_list_generation() {
     let now = Instant::now();
-    for size in 0..13 {
+    for size in 0..10 {
         let permutations_up_to_size_n = generate_permutations_up_to_size(size);
         let elapsed_duration = now.elapsed();
         println!("For size {}, time taken (ms) = {:?}, (s) = {:?}",

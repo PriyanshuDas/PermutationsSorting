@@ -35,7 +35,7 @@ pub fn get_all_pure_lehmer_codes_of_size(size: u8) -> Vec<u32> {
     return list;
 }
 
-fn get_lehmer_code_from_permutation(permutation: &Vec<u8>) -> u32 {
+pub fn get_lehmer_code_from_permutation(permutation: &Vec<u8>) -> u32 {
     Lehmer::from_permutation(&*permutation).to_decimal() as u32
 }
 

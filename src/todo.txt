@@ -38,3 +38,18 @@ Ideas:
 
         Move (p, i, j) gives lehmer code of permutation obtained by
             moving jth element to after i, in the permutation represented by lehmer code p
+
+        > This approach won't work. Need to pivot in another direction to achieve this goal.
+
+        Approach:
+
+        - Consider that for every Permutation p, we have to calculate adjacent lehmer codes:
+            Precalculate
+            memo[n][n][n]
+            for i = 0 to n-1
+                for delta = 0 to n-i-1
+                    let sum = 0;
+                    for pos = i to n {
+                        sum += p[pos]*factorial[pos+delta]
+                        memo[i][delta][pos] = sum;
+                    }
