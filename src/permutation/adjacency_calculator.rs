@@ -4,7 +4,7 @@ use super::permutation_label;
 
 use crate::permutation::permutations_generator;
 
-struct AdjacencyCalculator {
+pub struct AdjacencyCalculator {
     //array:
     // starting point, size, max bits
     //name: lehmer_delta
@@ -24,7 +24,7 @@ impl AdjacencyCalculator {
             let mut current_sum = 0;
             for bit in 0..permutation_size {
                 if 1 << bit & mask > 0 {
-                    current_sum += constants::get_factorial((permutation_size-bit) as usize)
+                    current_sum += constants::get_factorial((permutation_size - bit) as usize)
                 }
             }
             lehmer_delta_min_memo[mask] = current_sum;
@@ -73,6 +73,15 @@ impl AdjacencyCalculator {
 
 const DEBUG_ENABLED: bool = true;
 
+//todo: implement cleanly
+pub fn get_lehmer_code_by_moving_item_at_j_to_after_i(
+    lehmer_code: u32,
+    original_pos: usize,
+    new_after_pos: usize,
+) -> u32{
+    return 0;
+}
+
 //todo: extract into a config? too many params here
 // has become a monolith, divide and modularize
 // otherwise will become hard to debug and test
@@ -83,7 +92,6 @@ const DEBUG_ENABLED: bool = true;
 
 //todo: fix bugs
 //todo: make O(1) consistently?
-
 fn get_lehmer_code_by_moving_block_by_delta(
     adjacency_calculator: &AdjacencyCalculator,
     original_permutation: &Vec<u8>,
