@@ -74,6 +74,7 @@ impl AdjacencyCalculator {
 const DEBUG_ENABLED: bool = true;
 
 //todo: implement cleanly
+//todo: case when new_after_pos is -1
 pub fn get_lehmer_code_by_moving_item_at_j_to_after_i(
     lehmer_code: u32,
     original_pos: usize,
@@ -266,6 +267,8 @@ fn get_inversion_bitmap_for_permutation(permutation: &Vec<u8>) -> Vec<u16> {
     }
     return inversion_bitmap;
 }
+
+
 
 pub fn get_adjacent_labels_for_lehmer_number(size: usize, lehmer_number: u32) {
     let adjacency_calculator = AdjacencyCalculator::init(size as u8);

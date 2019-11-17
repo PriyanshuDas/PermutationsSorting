@@ -8,48 +8,26 @@ Todo:
     - Not really, let's proceed
 -> Do pre-computation                                   [ ]
 -> Create a pure permutation labels
-    + generator
-    + storage
-    + retrieval
--> Store pure labels and construct struct/graphs        [ ]
+    + generator                                         [o]
+    + storage                                           [o]
+    + retrieval                                         [o]
+
+-> Construct struct and graph           [ ]
 
 
 
-----------------------------
+Complexity problems:
 
-Ideas:
+-> get_code_by_moving_block (code, i, j, k)
+    : Need to do in O(1) complexity, but how?
+    : Need to be done in a very efficient serialized manner?
 
--> We don't need to generate permutations,
-    : Having Lehmer codes is good enough
+    : Precomputation:
+        Suppose for [code][i][j] (code and block)
+            -> We store min (code) which leads to optimal answer for all k
+            to which we can tranpose this block
+            -> If found use the value,
+            -> If not found, calculate for all
+        -> Will reduce complexity to O(n!*(n) + n!*n^2)
 
--> We only need to maintain pre_compute for the current level of codes
-    : Use Lehmer code, instead of permutation
-    : Store the actual code though, to be able to find the
-        : lower level adjacencies
-
--> If we can make it so that Lehmer code delta for the move
-    : Move (p, i, j) be calculated in O(1), we get the following hypothetical complexities:
-        Memory: O(n!*8)
-        Time: O(n!*n^3)
-
-        This is significantly reduced memory:
-        > storing the final results
-        > storing the reduced (lehmer code, size) for "unpure" lehmer codes
-
-        Move (p, i, j) gives lehmer code of permutation obtained by
-            moving jth element to after i, in the permutation represented by lehmer code p
-
-        > This approach won't work. Need to pivot in another direction to achieve this goal.
-
-        Approach:
-
-        - Consider that for every Permutation p, we have to calculate adjacent lehmer codes:
-            Precalculate
-            memo[n][n][n]
-            for i = 0 to n-1
-                for delta = 0 to n-i-1
-                    let sum = 0;
-                    for pos = i to n {
-                        sum += p[pos]*factorial[pos+delta]
-                        memo[i][delta][pos] = sum;
-                    }
+        -> This will require another level of abstraction

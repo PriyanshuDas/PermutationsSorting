@@ -91,6 +91,9 @@ fn normalize(permutation: Vec<u8>) -> Vec<u8> {
         normalized_permutation.remove(normalized_permutation.len() - 1);
     }
 
+    if DEBUG_ENABLED {
+        println!("reduced_permutation: {:?}", normalized_permutation);
+    }
     return normalized_permutation;
 }
 

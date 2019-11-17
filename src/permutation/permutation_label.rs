@@ -19,6 +19,9 @@ pub fn get_label_for_permutation(permutation: &Vec<u8>) -> u32 {
 }
 
 pub fn get_all_pure_lehmer_codes_of_size(size: u8) -> Vec<u32> {
+    if DEBUG_ENABLED {
+        println!("\t[get_all_pure_lehmer_codes_of_size = {}]", size);
+    }
     if size == 0 {
         return vec![0];
     }
@@ -28,10 +31,20 @@ pub fn get_all_pure_lehmer_codes_of_size(size: u8) -> Vec<u32> {
         let permutation: Vec<u8> =
             get_permutation_from_lehmer_code(size as usize, lehmer_code as usize);
         let reduced_permutation = reduce_permutation(&permutation);
+        if DEBUG_ENABLED {
+            println!("\treducing permutation: {:?}\
+            \n\treduced permutation: {:?}",
+            permutation, reduced_permutation);
+        }
         if permutation.len() == reduced_permutation.len() {
             list.push(lehmer_code as u32);
         }
     }
+
+    if DEBUG_ENABLED {
+        println!("\tList: {:?}", list);
+    }
+
     return list;
 }
 
