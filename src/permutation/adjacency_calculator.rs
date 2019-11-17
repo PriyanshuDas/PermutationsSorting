@@ -75,11 +75,11 @@ const DEBUG_ENABLED: bool = true;
 
 //todo: implement cleanly
 //todo: case when new_after_pos is -1
-pub fn get_lehmer_code_by_moving_item_at_j_to_after_i(
+pub fn get_code_shifting_item_to_new_position(
     lehmer_code: u32,
     original_pos: usize,
-    new_after_pos: usize,
-) -> u32{
+    new_after_pos: i8,
+) -> u32 {
     return 0;
 }
 
