@@ -3,6 +3,7 @@ use crate::permutation::constants;
 use super::permutation_label;
 
 use crate::permutation::permutations_generator;
+use std::cmp::max;
 
 pub struct AdjacencyCalculator {
     //array:
@@ -71,16 +72,41 @@ impl AdjacencyCalculator {
     }
 }
 
-const DEBUG_ENABLED: bool = true;
+const DEBUG_ENABLED: bool = false;
 
 //todo: implement cleanly
 //todo: case when new_after_pos is -1
 pub fn get_code_shifting_item_to_new_position(
+    size: usize,
     lehmer_code: u32,
     original_pos: usize,
     new_after_pos: i8,
 ) -> u32 {
-    return 0;
+
+    let permutation = permutation_label::get_permutation_from_lehmer_code(size, lehmer_code as usize);
+    let mut new_permutation = vec![];
+    if DEBUG_ENABLED {
+        println!("get_code_shifting_item_to_new_position:\
+        size: {}, code: {}, shift: ({} {})\tpermutation: {:?}",
+        size, lehmer_code, original_pos, new_after_pos, permutation);
+    }
+    let pos_1 = (new_after_pos + 1) as usize;
+
+    for i in 0..pos_1 {
+        new_permutation.push(permutation[i as usize]);
+    }
+    new_permutation.push(permutation[original_pos]);
+
+    for i in pos_1..original_pos {
+        new_permutation.push(permutation[i]);
+    }
+    for i in original_pos+1..size {
+        new_permutation.push(permutation[i]);
+    }
+    if DEBUG_ENABLED {
+        println!("get_code_shifting_item_to_new_position: {:?}", new_permutation);
+    }
+    return permutation_label::get_lehmer_code_from_permutation(&new_permutation);
 }
 
 //todo: extract into a config? too many params here
