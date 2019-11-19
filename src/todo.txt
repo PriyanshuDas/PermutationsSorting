@@ -35,44 +35,43 @@ Complexity problems:
 
 Stats:
 
-size   pures    total_moves        average          best        worst       time_taken
+size   pures    total_moves        average         time_taken               distance_distribution            Memory Used
 0		1		    0				 0
 1		0		    0				 NaN
 2		1		    1				 1
 3		1		    2				 2
-4		8		    17				 2.125
-5		36		    97				 2.6944444
-6		229		    732				 3.1965065
-7		1625	    6028			 3.7095385
-8       13208       55299            4.186781                                   14s 256ms
-9                                                                               3m 14s 413ms -> 2m 53s 855ms
-10
-
-size: 8, total_pures: 13208, total_distance: 55299, average_distance: 4.186781
-	 distance_distribution: {3: 368, 4: 10002, 5: 2835} time: 14s 256ms
-
-size: 9, total_pures: 120288, total_distance: 567119, average_distance: 4.7146764
-	 distance_distribution: {4: 34320, 5: 85966} time: 3m 14s 413ms
-
-size 10: expected time : 30-40m?
+4		8		    17				 2.125                                  {3: 0, 2: 6}
+5		36		    97				 2.6944444                              {2: 10, 3: 24}
+6		229		    732				 3.1965065                              {4: 44, 3: 183}
+7		1625	    6028			 3.7095385                              {3: 471, 4: 1152}
+8       13208       55299            4.186781       14s 256ms               {3: 368, 5: 2835, 4: 10002}
+9       120288      567119           4.7146764      2m 53s 855ms (12.19x)   {5: 85966, 4: 34320}
+10      1214673     6277752          5.168265       38m 21s 924ms (19x)     {4: 50665, 5: 908953, 6: 255052}      18 GB
 
 
-after changes:
+most time is taken by precomputation!
+> Post that it's very efficient
+> We need to parallelize/optimize the precomputation part
 
-Testing started at 11:32 ...
-size: 4, total_pures: 8, total_distance: 17, average_distance: 2.125
-	 distance_distribution: {2: 6, 3: 0}
-size: 5, total_pures: 36, total_distance: 102, average_distance: 2.8333333
-	 distance_distribution: {3: 27, 2: 6, 4: 0}
-size: 6, total_pures: 229, total_distance: 779, average_distance: 3.4017467
-	 distance_distribution: {4: 89, 3: 137, 5: 0}
+Next options to work on:
 
-reverting:
-size: 4, total_pures: 8, total_distance: 17, average_distance: 2.125
-	 distance_distribution: {3: 0, 2: 6}
-size: 5, total_pures: 36, total_distance: 97, average_distance: 2.6944444
-	 distance_distribution: {2: 10, 3: 24}
-size: 6, total_pures: 229, total_distance: 732, average_distance: 3.1965065
-	 distance_distribution: {4: 44, 3: 183}
-size: 7, total_pures: 1625, total_distance: 6028, average_distance: 3.7095385
-	 distance_distribution: {4: 1152, 3: 471}
+-> Make code parallelizable
+-> Make the pre-computation O(n!*n^2) time complexity
+
+> Both of these will improve time complexity significantly
+> 1 will give parallelization
+> 2 will allow better theoretical complexity
+
+> Doing 2 first will mean 1 can come without much rework
+> If 1 is done first, after doing 2, we will need to integrate cleanly
+> 1 is a bit of a mystery, will have to read and understand how to accomplish
+> 1 is also the most important thing mentioned in the SoP
+> Let's do 1 first.
+    -> Meanwhile also think of ways to make 2 work cleanly
+
+For size 9, init time taken (ms) = 150529, (s) = 150
+For size 9, update_init_on_basis_of_previous time taken (ms) = 5822, (s) = 6
+For size 9, process_pure_permutations: time taken (ms) = 2053, (s) = 2
+For size 10, init time taken (ms) = 1909380, (s) = 1909
+For size 10, update_init_on_basis_of_previous time taken (ms) = 81370, (s) = 81
+For size 10, process_pure_permutations: time taken (ms) = 6791, (s) = 7

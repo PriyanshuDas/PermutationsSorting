@@ -5,6 +5,7 @@ use crate::permutation::permutation_helper;
 use std::cmp::{min, max};
 use crate::permutation::adjacency_calculator::get_code_shifting_item_to_new_position;
 use std::collections::HashMap;
+use std::time::Instant;
 
 const DEBUG_ENABLED: bool = false;
 const INVALID_PAIR: (u8, u32) = (99, 99);
@@ -479,9 +480,25 @@ pub fn generate_data_for_size_up_to(max_size: usize) -> Vec<PermutationsData> {
 //        }
     ];
     for size in 1..max_size {
+        let now = Instant::now();
         let mut cur_size_permutations_data = PermutationsData::init(size);
+        let elapsed_on_init = now.elapsed();
+        println!("For size {}, init time taken (ms) = {:?}, (s) = {:?}",
+                 size,
+                 elapsed_on_init.as_millis(),
+                 elapsed_on_init.as_secs());
         cur_size_permutations_data.update_init_on_basis_of_previous(&permutations_data);
+        let elapsed_on_update_init = now.elapsed();
+        println!("For size {}, update_init_on_basis_of_previous time taken (ms) = {:?}, (s) = {:?}",
+                 size,
+                 elapsed_on_update_init.as_millis() - elapsed_on_init.as_millis(),
+                 elapsed_on_update_init.as_secs() - elapsed_on_init.as_secs());
         cur_size_permutations_data.process_pure_permutations();
+        let elapsed_on_process_pure_permutations = now.elapsed();
+        println!("For size {}, process_pure_permutations: time taken (ms) = {:?}, (s) = {:?}",
+                 size,
+                 elapsed_on_process_pure_permutations.as_millis() - elapsed_on_update_init.as_millis(),
+                 elapsed_on_process_pure_permutations.as_secs() - elapsed_on_update_init.as_secs());
         permutations_data.push(cur_size_permutations_data);
     }
     return permutations_data;
@@ -561,7 +578,7 @@ mod tests {
 
     #[test]
     fn test_generate_data() {
-        let mut permutations_data = generate_data_for_size_up_to(10);
+        let mut permutations_data = generate_data_for_size_up_to(9);
 //        let expected_average = [];
 
         let mut actual_stats = vec![];
