@@ -275,19 +275,20 @@ impl PermutationsData {
     pub fn update_init_on_basis_of_previous(&mut self, permutations_data: &Vec<PermutationsData>) {
         //Complexity: O(n!)
         self.update_distance_and_next_step_for_reducible_permutations(permutations_data);
-        self.print();
+//        self.print();
 //        self.process_block_slide_reduction_memo(permutations_data);
         //Complexity: O(n!*n^2)
         self.update_distance_and_next_step_for_pure_permutations(permutations_data);
     }
 
+    //todo: optimize with memoization
     fn get_adjacent_reduced_permutation_to(&self, code: u32) -> Vec<u32> {
         let mut adjacent_reduced_codes = vec![];
-        for i in 0..self.size-1 {
-            for j in i..self.size-1 {
+        for i in 0..self.size - 1 {
+            for j in i..self.size - 1 {
                 let mut cur_code = code;
-                let block_size =  (j - i + 1) as i8;
-                for k in j+1..self.size {
+                let block_size = (j - i + 1) as i8;
+                for k in j + 1..self.size {
                     cur_code = get_code_shifting_item_to_new_position(
                         self.size,
                         cur_code.clone(),
@@ -309,7 +310,7 @@ impl PermutationsData {
             let code = self.pure_permutations[pos];
             let adjacent_reduced_permutations = self.get_adjacent_reduced_permutation_to(code as u32);
 
-            if !DEBUG_ENABLED {
+            if DEBUG_ENABLED {
                 println!("update_distance_and_next_step_for_pure_permutations called for\
                  \n\tsize: {} code : {} permutation: {:?}\
                 \n\tadjacent: {:?}",
@@ -500,6 +501,7 @@ pub fn generate_data_for_size_up_to(max_size: usize) -> Vec<PermutationsData> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     struct TestCase {
         size: u8,
@@ -569,9 +571,43 @@ mod tests {
 
     #[test]
     fn test_generate_data() {
-        let mut permutations_data = generate_data_for_size_up_to(5);
+        let mut permutations_data = generate_data_for_size_up_to(8);
+//        let expected_average = [];
+
+        let mut actual_stats = vec![];
         for permutation_data in permutations_data {
-            permutation_data.print();
+            let size = permutation_data.pure_permutations.len();
+//            permutation_data.print();
+            let mut total_distance: u64 = 0;
+            let mut distance_distribution: HashMap<u8, Vec<u32>> = HashMap::new();
+            let mut distance_counts: HashMap<u8, u32> = HashMap::new();
+            for pos in 0..size {
+                let code = permutation_data.pure_permutations[pos];
+                let distance = permutation_data.distance[code as usize];
+                total_distance += distance as u64;
+
+                distance_distribution.entry(distance)
+                    .and_modify(|list| list.push(code))
+                    .or_insert_with(|| vec![]);
+
+                distance_counts.entry(distance)
+                    .and_modify(|ct| *ct += 1)
+                    .or_insert_with(|| 0);
+            }
+            let average_distance = total_distance as f32 / size as f32;
+            actual_stats.push((total_distance, size, average_distance));
+            println!("size: {}, total_pures: {}, total_distance: {}, average_distance: {}\
+            \n\t distance_distribution: {:?}"
+                     , permutation_data.size,
+                     size,
+                     total_distance,
+                     average_distance,
+                     distance_counts);
+
+//            for size in 0..expected_average.len() {
+//                assert_eq!(expected_average.0, actual_stats.0);
+//                assert_eq!(expected_average.1, actual_stats.1);
+//            }
         }
     }
 
