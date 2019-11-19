@@ -44,3 +44,35 @@ size   pures    total_moves        average          best        worst       time
 5		36		    97				 2.6944444
 6		229		    732				 3.1965065
 7		1625	    6028			 3.7095385
+8       13208       55299            4.186781                                   14s 256ms
+9                                                                               3m 14s 413ms -> 2m 53s 855ms
+10
+
+size: 8, total_pures: 13208, total_distance: 55299, average_distance: 4.186781
+	 distance_distribution: {3: 368, 4: 10002, 5: 2835} time: 14s 256ms
+
+size: 9, total_pures: 120288, total_distance: 567119, average_distance: 4.7146764
+	 distance_distribution: {4: 34320, 5: 85966} time: 3m 14s 413ms
+
+size 10: expected time : 30-40m?
+
+
+after changes:
+
+Testing started at 11:32 ...
+size: 4, total_pures: 8, total_distance: 17, average_distance: 2.125
+	 distance_distribution: {2: 6, 3: 0}
+size: 5, total_pures: 36, total_distance: 102, average_distance: 2.8333333
+	 distance_distribution: {3: 27, 2: 6, 4: 0}
+size: 6, total_pures: 229, total_distance: 779, average_distance: 3.4017467
+	 distance_distribution: {4: 89, 3: 137, 5: 0}
+
+reverting:
+size: 4, total_pures: 8, total_distance: 17, average_distance: 2.125
+	 distance_distribution: {3: 0, 2: 6}
+size: 5, total_pures: 36, total_distance: 97, average_distance: 2.6944444
+	 distance_distribution: {2: 10, 3: 24}
+size: 6, total_pures: 229, total_distance: 732, average_distance: 3.1965065
+	 distance_distribution: {4: 44, 3: 183}
+size: 7, total_pures: 1625, total_distance: 6028, average_distance: 3.7095385
+	 distance_distribution: {4: 1152, 3: 471}

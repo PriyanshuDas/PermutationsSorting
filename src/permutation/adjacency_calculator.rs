@@ -75,7 +75,7 @@ impl AdjacencyCalculator {
 const DEBUG_ENABLED: bool = false;
 
 //todo: implement cleanly
-//todo: case when new_after_pos is -1
+//todo: this needs to be optimized!
 pub fn get_code_shifting_item_to_new_position(
     size: usize,
     lehmer_code: u32,
