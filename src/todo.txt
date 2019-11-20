@@ -75,3 +75,29 @@ For size 9, process_pure_permutations: time taken (ms) = 2053, (s) = 2
 For size 10, init time taken (ms) = 1909380, (s) = 1909
 For size 10, update_init_on_basis_of_previous time taken (ms) = 81370, (s) = 81
 For size 10, process_pure_permutations: time taken (ms) = 6791, (s) = 7
+
+
+5s [concurrent] for 10
+46s [non-concurrent] for 10
+
+=> 90% reduction in time!
+
+
+get_permutations
+
+13s [non-concurrent]
+1s [concurrent]
+
+get_running_sum_of_item_pos_factorial_for_all_codes
+
+47s     [non-concurrent]
+6s      [concurrent]
+
+get_mask_sum_of_bits_position_factorial
+
+6ms    [non-concurrent]
+0ms     [concurrent]
+
+
+3m to init 11
+=> maybe 36m for 12?

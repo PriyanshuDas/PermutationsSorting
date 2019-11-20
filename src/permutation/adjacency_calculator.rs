@@ -4,6 +4,7 @@ use super::permutation_label;
 
 use crate::permutation::permutations_generator;
 use std::cmp::max;
+use rayon::prelude::*;
 
 const DEBUG_ENABLED: bool = false;
 
@@ -38,25 +39,17 @@ fn get_mask_for_pos_with_items_lesser_than_item_for_code(size: usize, code: u32)
 }
 
 fn get_masks_for_pos_with_items_lesser_than_item_for_permutation(size: usize) -> Vec<Vec<u32>> {
-    let mut vector = vec![];
-    //todo: can be parallelized
-    for code in 0..constants::FACTORIALS[size] {
-        let vector_for_current_code =
-            get_mask_for_pos_with_items_lesser_than_item_for_code(size, code);
-        vector.push(vector_for_current_code);
-    }
-    return vector;
+    return (0..constants::FACTORIALS[size] as usize)
+        .collect::<Vec<usize>>().par_iter_mut()
+        .map(|code| get_mask_for_pos_with_items_lesser_than_item_for_code(size, *code as u32))
+        .collect();
 }
 
 fn get_running_sum_of_item_pos_factorial_for_all_codes(size: usize) -> Vec<Vec<Vec<u64>>> {
-    let mut vector = vec![];
-    //todo: can be parallelized
-    for code in 0..constants::FACTORIALS[size] {
-        let vector_for_current_code =
-            get_running_sum_of_item_pos_factorial_for_code(size, code);
-        vector.push(vector_for_current_code);
-    }
-    return vector;
+    return (0..constants::FACTORIALS[size] as usize)
+        .collect::<Vec<usize>>().par_iter_mut()
+        .map(|code| get_running_sum_of_item_pos_factorial_for_code(size, *code as u32))
+        .collect();
 }
 
 fn get_running_sum_of_item_pos_factorial_for_code(size: usize, code: u32) -> Vec<Vec<u64>> {
@@ -91,22 +84,19 @@ fn get_position_factorial_for_set_bits_in_mask(size: usize, mask: u32) -> u64 {
 }
 
 fn get_mask_sum_of_bits_position_factorial(size: usize) -> Vec<u64> {
-    let mut masks_sum_vector = vec![];
-    for mask in 0..(1 << size) {
-        let value_of_mask = get_position_factorial_for_set_bits_in_mask(size, mask as u32);
-        masks_sum_vector.push(value_of_mask);
-    }
-    masks_sum_vector
+    return (0..(1 << size) as u32)
+        .collect::<Vec<u32>>()
+        .par_iter_mut()
+        .map(|mask| get_position_factorial_for_set_bits_in_mask(size, *mask))
+        .collect();
 }
 
 fn get_permutations_of_size(size: usize) -> Vec<Vec<u8>> {
-    let mut permutations_list = vec![];
-    for code in 0..constants::FACTORIALS[size] {
-        let permutation =
-            permutation_label::get_permutation_from_lehmer_code(size, code as usize);
-        permutations_list.push(permutation);
-    }
-    permutations_list
+    return (0..constants::FACTORIALS[size] as usize).collect::<Vec<usize>>()
+        .par_iter_mut()
+        .map(|code|
+            permutation_label::get_permutation_from_lehmer_code(size, *code as usize))
+        .collect();
 }
 
 fn get_mask_with_bits_set_before(old_pos: i32) -> i32 {
@@ -118,12 +108,14 @@ fn get_mask_with_bits_set_before(old_pos: i32) -> i32 {
 
 impl AdjacencyCalculator {
     pub fn init(size: usize) -> AdjacencyCalculator {
-        let permutations = get_permutations_of_size(size);
+        let permutations =
+            get_permutations_of_size(size);
         let mask_for_pos_with_items_greater_than_item_for_permutation =
             get_masks_for_pos_with_items_lesser_than_item_for_permutation(size);
         let running_sum_of_item_pos_factorial =
             get_running_sum_of_item_pos_factorial_for_all_codes(size);
-        let mask_sum_of_bits_position_factorial = get_mask_sum_of_bits_position_factorial(size);
+        let mask_sum_of_bits_position_factorial =
+            get_mask_sum_of_bits_position_factorial(size);
         return AdjacencyCalculator {
             size,
             permutations,
@@ -336,6 +328,108 @@ mod tests {
 
     #[test]
     fn test_adjacency_calculator_init() {
-        let adjacency_calculator =AdjacencyCalculator::init(12);
+        let adjacency_calculator = AdjacencyCalculator::init(12);
+    }
+
+    #[test]
+    fn test_get_masks_for_pos_with_items_lesser_than_item_for_permutation() {
+        let output =
+            get_masks_for_pos_with_items_lesser_than_item_for_permutation(10);
+    }
+
+    #[test]
+    fn test_get_masks_for_pos_with_items_lesser_than_item_for_permutation_for_small() {
+        let output =
+            get_masks_for_pos_with_items_lesser_than_item_for_permutation(3);
+        let expected_output = vec![
+            vec![0, 1, 3],
+            vec![0, 1, 5],
+            vec![0, 2, 3],
+            vec![0, 4, 5],
+            vec![0, 2, 6],
+            vec![0, 4, 6]];
+        assert_eq!(output, expected_output);
+    }
+
+    #[test]
+    fn test_get_permutations_of_size_for_small() {
+        let output = get_permutations_of_size(3);
+        let expected_output = vec![
+            vec![0, 1, 2],
+            vec![0, 2, 1],
+            vec![1, 0, 2],
+            vec![1, 2, 0],
+            vec![2, 0, 1],
+            vec![2, 1, 0]];
+        assert_eq!(output, expected_output);
+    }
+
+    #[test]
+    fn test_time_get_permutations_of_size_for_large() {
+        let output = get_permutations_of_size(10);
+    }
+
+    #[test]
+    fn test_get_running_sum_of_item_pos_factorial_for_all_codes_for_small() {
+        let output =
+            get_running_sum_of_item_pos_factorial_for_all_codes(3);
+        let expected_output = vec![
+            vec![
+                vec![0, 1, 3],
+                vec![0, 1]],
+            vec![
+                vec![0, 2, 3],
+                vec![0, 2]],
+            vec![
+                vec![2, 2, 4],
+                vec![1, 1]],
+            vec![
+                vec![2, 4, 4],
+                vec![1, 3]],
+            vec![
+                vec![4, 4, 5],
+                vec![2, 2]],
+            vec![
+                vec![4, 5, 5],
+                vec![2, 3]]];
+        assert_eq!(output, expected_output);
+    }
+
+    #[test]
+    fn test_time_get_running_sum_of_item_pos_factorial_for_all_codes_for_large() {
+        let output =
+            get_running_sum_of_item_pos_factorial_for_all_codes(10);
+    }
+
+    #[test]
+    fn test_get_mask_sum_of_bits_position_factorial_for_small() {
+        let output =
+            get_running_sum_of_item_pos_factorial_for_all_codes(3);
+        let expected_output = vec![
+            vec![
+                vec![0, 1, 3],
+                vec![0, 1]],
+            vec![
+                vec![0, 2, 3],
+                vec![0, 2]],
+            vec![
+                vec![2, 2, 4],
+                vec![1, 1]],
+            vec![
+                vec![2, 4, 4],
+                vec![1, 3]],
+            vec![
+                vec![4, 4, 5],
+                vec![2, 2]],
+            vec![
+                vec![4, 5, 5],
+                vec![2, 3]]];
+        assert_eq!(output, expected_output);
+    }
+
+    #[test]
+    fn test_time_get_mask_sum_of_bits_position_factorial_for_all_codes_for_large() {
+        let output =
+            get_mask_sum_of_bits_position_factorial(13);
     }
 }
