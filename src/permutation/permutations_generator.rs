@@ -59,7 +59,7 @@ pub fn test_permutation_generation() {
 #[test]
 pub fn test_permutations_list_generation() {
     let now = Instant::now();
-    for size in 0..10 {
+    for size in 0..8 {
         let permutations_up_to_size_n = generate_permutations_up_to_size(size);
         let elapsed_duration = now.elapsed();
         println!("For size {}, time taken (ms) = {:?}, (s) = {:?}",

@@ -15,7 +15,7 @@ mod permutation;
 //use permutation::permutations_generator;
 //
 
-const RANGE: usize = 50000000;
+const RANGE: usize = 50000;
 fn main() {
     println!("Enter the size of permutations for which to generate: ");
     let n = read!();

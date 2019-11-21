@@ -3,9 +3,11 @@ use crate::permutation::constants;
 use crate::permutation::permutation_label;
 use crate::permutation::permutation_helper;
 use std::cmp::{min, max};
-use crate::permutation::adjacency_calculator::get_code_shifting_item_to_new_position;
+use crate::permutation::adjacency_calculator::{get_code_shifting_item_to_new_position, AdjacencyCalculator};
 use std::collections::HashMap;
-use std::time::Instant;
+use std::time::{Instant, Duration};
+
+use rayon::prelude::*;
 
 const DEBUG_ENABLED: bool = false;
 const INVALID_PAIR: (u8, u32) = (99, 99);
@@ -25,8 +27,7 @@ pub struct PermutationsData {
     //next_step: size, code
     next_step: Vec<(u8, u32)>,
     //[code][i][j] => j moved to after i in code => new code
-    single_item_transposition_data: Vec<Vec<Vec<u32>>>,
-    block_slide_reduction_memo: Vec<Vec<Vec<i64>>>,
+    adjacency_calculator: AdjacencyCalculator,
     reduced_code: Vec<(usize, u32)>,
     pure_permutations: Vec<u32>,
 }
@@ -34,10 +35,6 @@ pub struct PermutationsData {
 
 //todo: space complexity can be reduced by closely packing some memos
 impl PermutationsData {
-    fn print_single_item_transposition_data(&self) {}
-
-    fn print_block_slide_reduction_memo(&self) {}
-
     fn print_visited(&self) {}
 
     pub fn print(&self) {
@@ -47,10 +44,6 @@ impl PermutationsData {
         println!("\tnext_step:\n\t{:?}", self.next_step);
         println!("\treduced_code:\n\t{:?}", self.reduced_code);
         println!("\tdistance:\n\t{:?}", self.distance);
-        println!("\tsingle_item_transposition_data:");
-        self.print_single_item_transposition_data();
-        println!("\tblock_slide_reduction_memo:");
-        self.print_block_slide_reduction_memo();
         println!("\tvisited:");
         self.print_visited();
         println!("====================================================================================");
@@ -86,9 +79,7 @@ impl PermutationsData {
     }
 
     fn init_visited(size: usize) -> Vec<Vec<Vec<bool>>> {
-        let mut visited: Vec<Vec<Vec<bool>>> = vec![];
-        let lehmer_code_range = 0..constants::FACTORIALS[size as usize];
-        for code in lehmer_code_range {
+        fn build_visited_vec_for_code(size: usize) -> Vec<Vec<bool>> {
             let mut current_code: Vec<Vec<bool>> = vec![];
             for i in 1..size {
                 let mut current_start_pos: Vec<bool> = vec![];
@@ -97,9 +88,14 @@ impl PermutationsData {
                 }
                 current_code.push(current_start_pos);
             }
-            visited.push(current_code)
+            current_code
         }
-        visited
+
+        let mut visited: Vec<Vec<Vec<bool>>> = vec![];
+        (0..constants::FACTORIALS[size as usize]).collect::<Vec<u32>>()
+            .par_iter_mut()
+            .map(|pos| build_visited_vec_for_code(size))
+            .collect()
     }
 
     fn init_next_step(size: usize) -> Vec<(u8, u32)> {
@@ -120,42 +116,25 @@ impl PermutationsData {
         distance
     }
 
-    //todo: Optimize to O(n!*n^2 space and time complexity!)
-    fn init_single_item_transposition_data(size: usize) -> Vec<Vec<Vec<u32>>> {
-        let mut single_item_transposition_memo = vec![];
-        let lehmer_code_range = constants::FACTORIALS[size as usize];
-
-        for code in 0..lehmer_code_range {
-            let mut code_vector = vec![];
-            for j in 0..size {
-                let mut code_item_vector = vec![];
-                for i in 0..j {
-                    code_item_vector.push(
-                        adjacency_calculator::get_code_shifting_item_to_new_position(
-                            size, code, j, (i as i8 -1) as i8))
-                }
-                code_vector.push(code_item_vector);
-            }
-            single_item_transposition_memo.push(code_vector);
-        }
-        single_item_transposition_memo
-    }
-
-    fn init_is_pure(size: usize) -> Vec<(usize, u32)> {
-        let mut is_pure = vec![];
-
-        for code in 0..constants::FACTORIALS[size as usize] {
+    fn init_reduced_code(size: usize) -> Vec<(usize, u32)> {
+        fn get_reduced_code(size: usize, code: u32) -> (usize, u32) {
             let permutation = permutation_label::get_permutation_from_lehmer_code(
                 size, code as usize);
             let reduced_permutation = permutation_helper::reduce_permutation(&permutation);
             if reduced_permutation.len() == permutation.len() {
-                is_pure.push((size, code));
+                let value_to_push = (size, code);
+                return value_to_push;
             } else {
                 let reduced_code = permutation_label::get_lehmer_code_from_permutation(&reduced_permutation);
-                is_pure.push((reduced_permutation.len(), reduced_code));
+                let value_to_push = (reduced_permutation.len(), reduced_code);
+                return value_to_push;
             }
         }
-        return is_pure;
+
+        (0..constants::FACTORIALS[size as usize]).collect::<Vec<u32>>()
+            .par_iter_mut()
+            .map(|code| get_reduced_code(size, *code))
+            .collect()
     }
 
     pub fn init_pure_permutations(&mut self) {
@@ -166,39 +145,69 @@ impl PermutationsData {
         }
     }
 
-    pub fn init_block_slide_reduction_memo(size: usize) -> Vec<Vec<Vec<i64>>> {
-        let mut block_slide_reduction_memo = vec![];
-        let lehmer_code_range = constants::FACTORIALS[size as usize];
-
-        for code in 0..lehmer_code_range {
-            let mut code_vector = vec![];
-            for i in 0..size {
-                let mut code_item_vector = vec![];
-                //todo: could be optimized to use half memory
-                for j in 0..size {
-                    code_item_vector.push(UNDEFINED);
-                }
-                code_vector.push(code_item_vector);
-            }
-            block_slide_reduction_memo.push(code_vector);
-        }
-        block_slide_reduction_memo
-    }
-
     pub fn init(size: usize) -> PermutationsData {
+        let now = Instant::now();
+        let mut prev_duration = now.elapsed();
+        let mut cur_duration = now.elapsed();
+        let next_step = PermutationsData::init_next_step(size);
+        if !DEBUG_ENABLED {
+            cur_duration = now.elapsed();
+            PermutationsData::log_time_taken(&mut prev_duration, &mut cur_duration, "init_next_step");
+            prev_duration = cur_duration;
+        }
+
+        let visited = PermutationsData::init_visited(size);
+        if !DEBUG_ENABLED {
+            cur_duration = now.elapsed();
+            PermutationsData::log_time_taken(&mut prev_duration, &mut cur_duration, "init_visited");
+            prev_duration = cur_duration;
+        }
+
+        let distance = PermutationsData::init_distance(size);
+        if !DEBUG_ENABLED {
+            cur_duration = now.elapsed();
+            PermutationsData::log_time_taken(&mut prev_duration, &mut cur_duration, "init_distance");
+            prev_duration = cur_duration;
+        }
+
+        let adjacency_calculator = AdjacencyCalculator::init(size);
+        if !DEBUG_ENABLED {
+            cur_duration = now.elapsed();
+            PermutationsData::log_time_taken(&mut prev_duration, &mut cur_duration, "adjacency_calculator::init()");
+            prev_duration = cur_duration;
+        }
+
+        let reduced_code = PermutationsData::init_reduced_code(size);
+        if !DEBUG_ENABLED {
+            cur_duration = now.elapsed();
+            PermutationsData::log_time_taken(&mut prev_duration, &mut cur_duration, "reduced_code");
+            prev_duration = cur_duration;
+        }
+
         let mut permutations_data = PermutationsData {
             size,
-            next_step: PermutationsData::init_next_step(size),
-            visited: PermutationsData::init_visited(size),
-            distance: PermutationsData::init_distance(size),
-            single_item_transposition_data: PermutationsData::init_single_item_transposition_data(size),
+            next_step,
+            visited,
+            distance,
+            adjacency_calculator,
             pure_permutations: vec![],
-            reduced_code: PermutationsData::init_is_pure(size),
-            block_slide_reduction_memo: PermutationsData::init_block_slide_reduction_memo(size),
+            reduced_code,
         };
 
         permutations_data.init_pure_permutations();
+        if !DEBUG_ENABLED {
+            cur_duration = now.elapsed();
+            PermutationsData::log_time_taken(&mut prev_duration, &mut cur_duration, "init_pure_permutations");
+            prev_duration = cur_duration;
+        }
+
         return permutations_data;
+    }
+
+    fn log_time_taken(prev_duration: &mut Duration, cur_duration: &mut Duration, name: &str) {
+        let time_taken_ms = cur_duration.as_millis() - prev_duration.as_millis();
+        let time_taken_s = cur_duration.as_secs() - prev_duration.as_secs();
+        println!("{} took : {} ms, {} s", name, time_taken_ms, time_taken_s);
     }
 
     //todo: write tests
@@ -206,30 +215,14 @@ impl PermutationsData {
     // we are finding the lowest distance label if we slide block [i, j]
     // needs terminal conditions
 
-    fn update_block_slide_reduction_memo(&mut self, i: usize, j: usize, cur_code: u32, new_code: u32) {
-        if DEBUG_ENABLED {
-            println!("update_block_slide_reduction_memo called with params\
-            \n\tcode: {}, {:?} [ i : {}, j = {}]\
-             \n\tnew_code: {}, {:?}",
-                     cur_code,
-                     permutation_label::get_permutation_from_lehmer_code(self.size, cur_code as usize),
-                     i, j, new_code,
-                     permutation_label::get_permutation_from_lehmer_code(self.size, new_code as usize));
-        }
-
-        if self.distance[cur_code as usize] > self.distance[new_code as usize] {
-            self.block_slide_reduction_memo[cur_code as usize][i as usize][j as usize] = new_code as i64;
-        }
-    }
-
     pub fn calculate(&self) {}
 
     //Complexity: O(n!*n^2)?
     pub fn update_init_on_basis_of_previous(&mut self, permutations_data: &Vec<PermutationsData>) {
         //Complexity: O(n!)
         self.update_distance_and_next_step_for_reducible_permutations(permutations_data);
-        //Complexity: O(n!*n^2)
-        self.update_distance_and_next_step_for_pure_permutations(permutations_data);
+        //Complexity: O(n!*n^3)
+//        self.update_distance_and_next_step_for_pure_permutations(permutations_data);
     }
 
     //todo: optimize with memoization
@@ -241,34 +234,11 @@ impl PermutationsData {
                 let block_size = (j - i + 1) as i8;
                 for k in j + 1..self.size {
                     let new_pos = k as i8 - block_size - 1;
-                    let new_pos_for_optimized = k - block_size as usize;
-                    cur_code =
-                        self.single_item_transposition_data[cur_code as usize][k][(new_pos_for_optimized)];
-//                    cur_code = get_code_shifting_item_to_new_position(
-//                        self.size,
-//                        cur_code.clone(),
-//                        k,
-//                        new_pos);
+                    let new_pos_for_optimized = k as i8 - block_size as i8 - 1;
+                    let delta_for_move = self.adjacency_calculator.get_delta_for_moving_item(
+                        cur_code, k, new_pos_for_optimized);
 
-//                    if !DEBUG_ENABLED && cur_code != cur_code_optimized {
-//                        let original_perm =
-//                            permutation_label::get_permutation_from_lehmer_code(
-//                                self.size, code as usize);
-//
-//                        let cur_perm =
-//                            permutation_label::get_permutation_from_lehmer_code(
-//                                self.size, cur_code as usize);
-//
-//                        let new_perm =
-//                            permutation_label::get_permutation_from_lehmer_code(
-//                                self.size, cur_code_optimized as usize);
-//
-//                        println!("(get_adjacent_reduced_permutation_to {:?}\
-//                         \n\tmoving ({} {} {})\
-//                          \n\t correct new_perms: {:?}, new_pos: {}\
-//                          \n\t optimized {:?}, new_pos: {}",
-//                           original_perm, i, j, k, cur_perm, new_pos, new_perm, new_pos_for_optimized);
-//                    }
+                    cur_code = (cur_code as i32 + delta_for_move) as u32;
 
                     if self.reduced_code[cur_code as usize].0 < self.size {
                         adjacent_reduced_codes.push(cur_code);
@@ -317,6 +287,19 @@ impl PermutationsData {
         }
     }
 
+
+    fn update_distance_and_next_step_for_pure_permutations_optimized(&mut self, permutations_data: &Vec<PermutationsData>) {
+        let mut reduced_codes: Vec<(u32, u8)> =
+            (0..constants::FACTORIALS[self.size]).collect::<Vec<u32>>()
+                .par_iter()
+                .filter(|code| self.reduced_code[**code as usize].0 < self.size)
+                .map(|code| (*code, self.distance[*code as usize]))
+                .collect();
+
+        reduced_codes.sort_by(|a, b| a.1.cmp(&b.1));
+        return;
+    }
+
     fn update_distance_and_next_step_for_code(&mut self, code: u32, new_dist: u8, new_size: u8, new_code: u32) {
         self.distance[code as usize] = new_dist;
         self.next_step[code as usize] = (new_size, new_code);
@@ -335,7 +318,18 @@ impl PermutationsData {
             println!("update_distance_and_next_step_for_reducible_permutations called!\
             \n Params: size: {:?} ({:?})", self.size, self.reduced_code);
         }
-
+//        let n = self.size;
+//        self.distance = self.reduced_code.par_iter()
+//            .map(|reduced_size_code_pair|
+//                if reduced_size_code_pair.0 != n { reduced_size_code_pair.1 as u8 } else { 99 as u8 }
+//            ).collect();
+//
+//        self.next_step = self.reduced_code.par_iter()
+//            .map(|reduced_size_code_pair|
+//                if reduced_size_code_pair.0 != n {
+//                    (reduced_size_code_pair.0 as u8, reduced_size_code_pair.1 as u32)
+//                } else { (n as u8, 99 as u32) }
+//            ).collect();
         for code in 0..self.reduced_code.len() {
             let size_code_pair = self.reduced_code[code as usize];
             if size_code_pair.0 == self.size {
@@ -345,9 +339,11 @@ impl PermutationsData {
                 let new_code = size_code_pair.1;
                 if DEBUG_ENABLED {
                     println!("new size: {}, new_code: {}", new_size, new_code);
+                    println!("permutations_data_lenght: {}", permutations_data.len());
                 }
                 let new_dist = permutations_data[new_size as usize].distance[new_code as usize];
-                self.update_distance_and_next_step_for_code(code as u32, new_dist, new_size as u8, new_code);
+                self.distance[code as usize] = new_dist;
+                self.next_step[code as usize] = (new_size as u8, new_code);
             }
         };
     }
@@ -378,9 +374,11 @@ impl PermutationsData {
                 let mut cur_code = code;
                 self.visited[code as usize][i][j] = true;
                 for k in j + 1..self.size {
-                    let new_pos_for_optimized = k - block_size as usize;
-                    cur_code =
-                        self.single_item_transposition_data[cur_code as usize][k][(new_pos_for_optimized)];
+                    let new_pos_for_optimized = k as i8 - block_size as i8 - 1;
+                    let delta_for_move = self.adjacency_calculator.get_delta_for_moving_item(
+                        cur_code, k, new_pos_for_optimized);
+                    cur_code = (cur_code as i32 + delta_for_move) as u32;
+
                     if self.visited[cur_code as usize][k - block_size][k - 1] {
                         break;
                     }
@@ -399,56 +397,13 @@ impl PermutationsData {
 
 
     // Complexity: O(n!*n^2) time and O(n!) space
-    pub fn process_pure_permutations(&mut self) {
-        if DEBUG_ENABLED {
-            println!("Process pure_permutations called for size : {} ", self.size);
-        }
-
-        let mut unprocessed_batch = self.pure_permutations.clone();
-        let mut batch_ct = 0;
-
-        //todo: this batch_calculation is wonky, fix?
-        while !unprocessed_batch.is_empty() {
-            batch_ct += 1;
-            let mut current_max_dist = 0;
-            let mut current_min_dist = 99;
+    pub fn process_all_permutations(&mut self) {
+        let mut next_batch = vec![0];
+        while next_batch.len() > 0 {
+            let current_batch = next_batch.clone();
             let mut next_batch = vec![];
-            for pos in 0..unprocessed_batch.len() {
-                let current_code = unprocessed_batch[pos];
-                let current_code_dist = self.distance[current_code as usize];
-                current_min_dist = min(current_min_dist, current_code_dist);
-                current_max_dist = max(current_max_dist, current_code_dist);
-            }
-            if DEBUG_ENABLED {
-                println!("batch: \
-                    \n\t min_dist: {}, max_dist: {}", current_min_dist, current_max_dist);
-            }
-
-            if current_min_dist != 99 && current_min_dist + 1 >= current_max_dist {
-                if DEBUG_ENABLED {
-                    println!("batch processing stopped: \
-                    \n\t min_dist: {}, max_dist: {}", current_min_dist, current_max_dist);
-                }
-                break;
-            }
-            for pos in 0..unprocessed_batch.len() {
-                let current_code = self.pure_permutations[pos];
-                let current_code_dist = self.distance[current_code as usize];
-                if current_code_dist == current_min_dist {
-                    next_batch.push(current_code);
-                }
-            }
-
-            for item_pos in 0..next_batch.len() {
-                self.process_permutation(next_batch[item_pos]);
-            }
-
-            if DEBUG_ENABLED {
-                println!("batch processing for size: {}, batch: {} \
-                \n\tbatch has: {:?}", self.size, batch_ct, unprocessed_batch);
-                println!("processed_batch: {:?}", next_batch);
-            }
-            unprocessed_batch.retain(|&x| self.visited[x as usize][0][0] == false);
+            current_batch.par_iter()
+                .map(|code| process_permutation_adjacency())
         }
     }
 }
@@ -460,45 +415,38 @@ pub fn generate_data_for_size_up_to(max_size: usize) -> Vec<PermutationsData> {
             visited: vec![],
             distance: vec![0],
             next_step: vec![(0, 0)],
-            single_item_transposition_data: vec![],
+            adjacency_calculator: AdjacencyCalculator::init(0),
 //todo: fill?
-            block_slide_reduction_memo: vec![],
             reduced_code: vec![(0, 0)],
             pure_permutations: vec![0],
         },
-//        PermutationsData {
-//            size: 1,
-//            visited: vec![vec![vec![true]]],
-//            distance: vec![0],
-////todo: verify?
-//            next_step: vec![(0, 0)],
-//            single_item_transposition_data: vec![],
-//            //todo: fill?
-//            block_slide_reduction_memo: vec![],
-//            reduced_code: vec![(0, 0)],
-//            pure_permutations: vec![],
-//        }
     ];
     for size in 1..max_size {
         let now = Instant::now();
         let mut cur_size_permutations_data = PermutationsData::init(size);
         let elapsed_on_init = now.elapsed();
-        println!("For size {}, init time taken (ms) = {:?}, (s) = {:?}",
-                 size,
-                 elapsed_on_init.as_millis(),
-                 elapsed_on_init.as_secs());
+        if !DEBUG_ENABLED {
+            println!("For size {}, init time taken (ms) = {:?}, (s) = {:?}",
+                     size,
+                     elapsed_on_init.as_millis(),
+                     elapsed_on_init.as_secs());
+        }
         cur_size_permutations_data.update_init_on_basis_of_previous(&permutations_data);
         let elapsed_on_update_init = now.elapsed();
-        println!("For size {}, update_init_on_basis_of_previous time taken (ms) = {:?}, (s) = {:?}",
-                 size,
-                 elapsed_on_update_init.as_millis() - elapsed_on_init.as_millis(),
-                 elapsed_on_update_init.as_secs() - elapsed_on_init.as_secs());
-        cur_size_permutations_data.process_pure_permutations();
+        if !DEBUG_ENABLED {
+            println!("For size {}, update_init_on_basis_of_previous time taken (ms) = {:?}, (s) = {:?}",
+                     size,
+                     elapsed_on_update_init.as_millis() - elapsed_on_init.as_millis(),
+                     elapsed_on_update_init.as_secs() - elapsed_on_init.as_secs());
+        }
+        cur_size_permutations_data.process_all_permutations();
         let elapsed_on_process_pure_permutations = now.elapsed();
-        println!("For size {}, process_pure_permutations: time taken (ms) = {:?}, (s) = {:?}",
-                 size,
-                 elapsed_on_process_pure_permutations.as_millis() - elapsed_on_update_init.as_millis(),
-                 elapsed_on_process_pure_permutations.as_secs() - elapsed_on_update_init.as_secs());
+        if !DEBUG_ENABLED {
+            println!("For size {}, process_pure_permutations: time taken (ms) = {:?}, (s) = {:?}",
+                     size,
+                     elapsed_on_process_pure_permutations.as_millis() - elapsed_on_update_init.as_millis(),
+                     elapsed_on_process_pure_permutations.as_secs() - elapsed_on_update_init.as_secs());
+        }
         permutations_data.push(cur_size_permutations_data);
     }
     return permutations_data;
@@ -576,9 +524,11 @@ mod tests {
         assert_eq!(pure_permutations, case.expected_pure_permutations);
     }
 
+
+    //todo: for high sizes takes too long.
     #[test]
     fn test_generate_data() {
-        let mut permutations_data = generate_data_for_size_up_to(9);
+        let mut permutations_data = generate_data_for_size_up_to(10);
 //        let expected_average = [];
 
         let mut actual_stats = vec![];
