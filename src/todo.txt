@@ -73,11 +73,30 @@ For size 9, init time taken (ms) = 150529, (s) = 150
 For size 9, update_init_on_basis_of_previous time taken (ms) = 5822, (s) = 6
 For size 9, process_pure_permutations: time taken (ms) = 2053, (s) = 2
 ============================= Post Optimization ================================
-For size 9, init time taken (ms) = 2753, (s) = 2
-For size 9, update_init_on_basis_of_previous time taken (ms) = 65, (s) = 0
-For size 9, process_pure_permutations: time taken (ms) = 213129, (s) = 213
-    set_initial_distance_for_pure_permutations, time taken: 205420 ms
-    process_pure_permutations, time taken: 7709 ms
+size: 0, total_pures: 1, total_distance: 0, average_distance: 0
+	 distance_distribution: {0: 1}
+size: 1, total_pures: 0, total_distance: 0, average_distance: NaN
+	 distance_distribution: {}
+size: 2, total_pures: 1, total_distance: 1, average_distance: 1
+	 distance_distribution: {1: 1}
+size: 3, total_pures: 1, total_distance: 2, average_distance: 2
+	 distance_distribution: {2: 1}
+size: 4, total_pures: 8, total_distance: 17, average_distance: 2.125
+	 distance_distribution: {2: 7, 3: 1}
+size: 5, total_pures: 36, total_distance: 97, average_distance: 2.6944444
+	 distance_distribution: {2: 11, 3: 25}
+size: 6, total_pures: 229, total_distance: 732, average_distance: 3.1965065
+	 distance_distribution: {4: 45, 3: 184}
+size: 7, total_pures: 1625, total_distance: 6028, average_distance: 3.7095385
+	 distance_distribution: {3: 472, 4: 1153}
+size: 8, total_pures: 13208, total_distance: 55299, average_distance: 4.186781
+	 distance_distribution: {3: 369, 4: 10003, 5: 2836}
+size: 9, total_pures: 120288, total_distance: 567119, average_distance: 4.7146764
+	 distance_distribution: {4: 34321, 5: 85967}
+size: 10, total_pures: 1214673, total_distance: 6277752, average_distance: 5.168265
+	 distance_distribution: {6: 255053, 4: 50666, 5: 908954}
+size: 11, total_pures: 13469897, total_distance: 76800553, average_distance: 5.7016435
+	 distance_distribution: {5: 3966328, 7: 1, 4: 26251, 6: 9477317}
 
 ================================================================================
 Problem:

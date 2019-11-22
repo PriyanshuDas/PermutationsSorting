@@ -260,7 +260,7 @@ impl PermutationsData {
         //Complexity: O(n!)
         self.update_distance_and_next_step_for_reducible_permutations(permutations_data);
         //Complexity: O(n!*n^3)
-//        self.update_distance_and_next_step_for_pure_permutations(permutations_data);
+        self.update_distance_and_next_step_for_pure_permutations(permutations_data);
     }
 
     //todo: optimize with memoization
@@ -292,7 +292,7 @@ impl PermutationsData {
             //todo: implement
             let code = self.pure_permutations[pos];
 
-            //this is currently taking O(n^4), but ideally should be O(n^2)
+            //this is currently taking O(n^3), but ideally should be O(n^2)
             let adjacent_reduced_permutations =
                 self.get_adjacent_reduced_permutation_to(code as u32);
 
@@ -717,7 +717,7 @@ impl PermutationsData {
     pub fn process_all_permutations_time_optimized(&mut self) {
         let now: Instant = Instant::now();
         let mut prev_time = now.elapsed();
-        self.set_initial_distance_for_pure_permutations();
+//        self.set_initial_distance_for_pure_permutations();
         if !DEBUG_ENABLED {
             let mut new_time = now.elapsed();
             println!("set_initial_distance_for_pure_permutations, time taken: {} ms",
