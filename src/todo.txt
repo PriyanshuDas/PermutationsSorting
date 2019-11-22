@@ -47,7 +47,7 @@ size   pures    total_moves        average         time_taken                   
 8       13208       55299            4.186781       14s 256ms                           {3: 368, 5: 2835, 4: 10002}
 9       120288      567119           4.7146764      2m 53s 855ms (12.19x)  -> 57s       {5: 85966, 4: 34320}
 10      1214673     6277752          5.168265       38m 21s 924ms (19x)                 {4: 50665, 5: 908953, 6: 255052}      18 GB
-
+                                                    23m init time!
 
 most time is taken by precomputation!
 > Post that it's very efficient
@@ -72,25 +72,22 @@ Next options to work on:
 For size 9, init time taken (ms) = 150529, (s) = 150
 For size 9, update_init_on_basis_of_previous time taken (ms) = 5822, (s) = 6
 For size 9, process_pure_permutations: time taken (ms) = 2053, (s) = 2
+============================= Post Optimization ================================
+For size 9, init time taken (ms) = 2753, (s) = 2
+For size 9, update_init_on_basis_of_previous time taken (ms) = 65, (s) = 0
+For size 9, process_pure_permutations: time taken (ms) = 213129, (s) = 213
+    set_initial_distance_for_pure_permutations, time taken: 205420 ms
+    process_pure_permutations, time taken: 7709 ms
 
+================================================================================
+Problem:
 
-5s [concurrent] for 10
-46s [non-concurrent] for 10
+-> Processing all permutations in sequence :
+    > Practically slower
+    > Theoretically same time complexity
+    > Space Complexity?
 
-=> 90% reduction in time!
-
-
-init_next_step took : 28 ms, 0 s
-init_visited took : 10356 ms, 10 s
-    => Parallelizing
-    => Post parallelizing : init_visited took : 960 ms, 0 s
-
-init_distance took : 26 ms, 0 s
-adjacency_calculator::init() took : 1041 ms, 1 s
-
-reduced_code took : 5034 ms, 5 s
-    => Parallelising
-    => reduced to reduced_code took : 532 ms, 0 s
-
-block_slide_reduction_memo took : 11914 ms, 12 s
-init_pure_permutations took : 33 ms, 0 s
+-> Why is current version slower than sequential?
+    > We are also processing copies!
+        > We need to identify using reduced code
+        > If reduced code is processed, don't process this one??
