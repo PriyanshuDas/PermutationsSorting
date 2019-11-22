@@ -8,9 +8,9 @@ use std::collections::HashMap;
 use std::time::{Instant, Duration};
 
 use rayon::prelude::*;
-use crate::permutation::distance_calculator::ProcessingStatus::{UNPROCESSED, PROCESSED};
 use std::fmt;
 use std::fmt::{Formatter, Error};
+use crate::permutation::distance_calculator::distance_calculator::ProcessingStatus::{UNPROCESSED, PROCESSED};
 
 const DEBUG_ENABLED: bool = false;
 const INVALID_PAIR: (u8, u32) = (99, 99);
