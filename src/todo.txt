@@ -49,6 +49,9 @@ size   pures    total_moves        average         time_taken                   
 10      1214673     6277752          5.168265       38m 21s 924ms (19x)                 {4: 50665, 5: 908953, 6: 255052}      18 GB
                                                     23m init time!
 
+32m for 10, took 4 gb
+
+
 most time is taken by precomputation!
 > Post that it's very efficient
 > We need to parallelize/optimize the precomputation part
@@ -110,3 +113,12 @@ Problem:
     > We are also processing copies!
         > We need to identify using reduced code
         > If reduced code is processed, don't process this one??
+
+===============================================================================
+Metrics for O(n!*n) space and O(n!*n^2) time:
+Size 9 took 1m 17s to process (prev one was 31s [O(n!*n^2) memory])
+    => Probably due to O(n!*n^2) sequential work that needs to be done overall
+        > When we try to update the results of processing
+        > This is due to lock needed on data
+        > Can be optimized by taking lock for every permutation affected
+        > Should parallelize this portion significantly
